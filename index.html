@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Hall Seating Plan (Vertical Snake + Excel + Labels)</title>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mini.min.js"></script>
+  <title>Exam Hall Seating Plan (Vertical Snake + Excel Export)</title>
+  <!-- ✅ Use stable CDN version of SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -66,7 +67,6 @@
     const studentsRaw = document.getElementById('students').value.trim();
     const studentList = studentsRaw.split('\n').map(s => s.trim()).filter(s => s);
 
-    // 2D array with seat data
     const gridData = Array.from({ length: rows }, () => Array(cols).fill(null));
     let studentIndex = 0;
 
@@ -84,18 +84,17 @@
       }
     }
 
-    // Save for Excel export with headers
+    // Save for Excel export
     lastGridData = [["", ...Array.from({ length: cols }, (_, i) => (i + 1).toString())]];
     for (let r = 0; r < rows; r++) {
       lastGridData.push([getRowLabel(r), ...gridData[r]]);
     }
 
-    // Render grid to screen
+    // Render grid
     const grid = document.getElementById('seatingGrid');
     grid.innerHTML = '';
     grid.style.gridTemplateColumns = `repeat(${cols + 1}, auto)`;
 
-    // Render header row
     const blank = document.createElement('div');
     blank.className = 'seat';
     blank.textContent = '';
@@ -109,7 +108,6 @@
       grid.appendChild(label);
     }
 
-    // Render each row with row label and data
     for (let r = 0; r < rows; r++) {
       const rowLabel = document.createElement('div');
       rowLabel.className = 'seat';
@@ -129,10 +127,13 @@
   });
 
   document.getElementById('exportBtn').addEventListener('click', function () {
-    const ws = XLSX.utils.aoa_to_sheet(lastGridData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "SeatingPlan");
-    XLSX.writeFile(wb, "ExamHallSeatingPlan.xlsx");
+    if (!lastGridData.length) return;
+
+    const worksheet = XLSX.utils.aoa_to_sheet(lastGridData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "SeatingPlan");
+
+    XLSX.writeFile(workbook, "ExamHallSeatingPlan.xlsx");
   });
 </script>
 
