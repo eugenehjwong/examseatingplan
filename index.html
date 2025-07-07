@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Hall Seating Plan (CSV Copyable)</title>
+  <title>Exam Hall Seating Plan with Spaced CSV</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -37,7 +37,7 @@
 </head>
 <body>
 
-<h2>Exam Hall Seating Plan (Vertical Snake + Copyable CSV)</h2>
+<h2>Exam Hall Seating Plan (Vertical Snake + Spaced CSV)</h2>
 
 <form id="seatingForm">
   <label for="rows">Number of Rows:</label>
@@ -54,8 +54,8 @@
 
 <div id="seatingGrid" class="grid"></div>
 
-<h3>CSV Output (Copy and Paste)</h3>
-<textarea id="csvOutput" rows="10" readonly></textarea>
+<h3>CSV Output (Spaced – Copy and Paste into Excel)</h3>
+<textarea id="csvOutput" rows="12" readonly></textarea>
 
 <script>
   function getRowLabel(index) {
@@ -85,13 +85,13 @@
       }
     }
 
-    // Render the visual grid
+    // Render visual grid
     const grid = document.getElementById('seatingGrid');
     grid.innerHTML = '';
     grid.style.gridTemplateColumns = `repeat(${cols + 1}, auto)`;
 
-    // Header row
-    grid.appendChild(document.createElement('div')); // top-left empty cell
+    // Header
+    grid.appendChild(document.createElement('div'));
     for (let c = 0; c < cols; c++) {
       const label = document.createElement('div');
       label.className = 'seat';
@@ -100,7 +100,6 @@
       grid.appendChild(label);
     }
 
-    // Rows
     for (let r = 0; r < rows; r++) {
       const rowLabel = document.createElement('div');
       rowLabel.className = 'seat';
@@ -116,15 +115,26 @@
       }
     }
 
-    // Build CSV output
-    let csvRows = [];
-    let header = [""].concat(Array.from({ length: cols }, (_, i) => i + 1));
+    // Generate CSV with spacing
+    const csvRows = [];
+
+    // Header row with spaces between columns
+    const header = [""];
+    for (let c = 0; c < cols; c++) {
+      header.push(c + 1);
+      if (c !== cols - 1) header.push(""); // space between columns
+    }
     csvRows.push(header.join(","));
 
     for (let r = 0; r < rows; r++) {
-      const rowLabel = getRowLabel(r);
-      const rowData = [rowLabel].concat(gridData[r]);
-      csvRows.push(rowData.join(","));
+      const row = [getRowLabel(r)];
+      for (let c = 0; c < cols; c++) {
+        row.push(gridData[r][c]);
+        if (c !== cols - 1) row.push(""); // spacing column
+      }
+      csvRows.push(row.join(","));
+      // Blank row after each data row (except after the last)
+      if (r !== rows - 1) csvRows.push("");
     }
 
     document.getElementById('csvOutput').value = csvRows.join("\n");
