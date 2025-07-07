@@ -2,9 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Hall Seating Plan (Vertical Snake + Excel Export)</title>
-  <!-- ✅ Use stable CDN version of SheetJS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <title>Exam Hall Seating Plan (CSV Copyable)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -29,11 +27,17 @@
       text-align: center;
       font-size: 14px;
     }
+    textarea#csvOutput {
+      width: 100%;
+      margin-top: 20px;
+      font-family: monospace;
+      white-space: pre;
+    }
   </style>
 </head>
 <body>
 
-<h2>Exam Hall Seating Plan (Vertical Snake Pattern with Labels)</h2>
+<h2>Exam Hall Seating Plan (Vertical Snake + Copyable CSV)</h2>
 
 <form id="seatingForm">
   <label for="rows">Number of Rows:</label>
@@ -48,13 +52,12 @@
   <button type="submit">Generate Seating Plan</button>
 </form>
 
-<button id="exportBtn" style="display:none;">📁 Download as Excel</button>
-
 <div id="seatingGrid" class="grid"></div>
 
-<script>
-  let lastGridData = [];
+<h3>CSV Output (Copy and Paste)</h3>
+<textarea id="csvOutput" rows="10" readonly></textarea>
 
+<script>
   function getRowLabel(index) {
     return String.fromCharCode(65 + index); // A, B, C, ...
   }
@@ -67,39 +70,28 @@
     const studentsRaw = document.getElementById('students').value.trim();
     const studentList = studentsRaw.split('\n').map(s => s.trim()).filter(s => s);
 
-    const gridData = Array.from({ length: rows }, () => Array(cols).fill(null));
+    const gridData = Array.from({ length: rows }, () => Array(cols).fill("- Empty -"));
     let studentIndex = 0;
 
     for (let col = 0; col < cols; col++) {
-      const directionDown = col % 2 === 0;
-      const rowRange = directionDown ? [...Array(rows).keys()] : [...Array(rows).keys()].reverse();
+      const down = col % 2 === 0;
+      const rowOrder = down ? [...Array(rows).keys()] : [...Array(rows).keys()].reverse();
 
-      for (let row of rowRange) {
+      for (let row of rowOrder) {
         if (studentIndex < studentList.length) {
           gridData[row][col] = studentList[studentIndex];
           studentIndex++;
-        } else {
-          gridData[row][col] = "- Empty -";
         }
       }
     }
 
-    // Save for Excel export
-    lastGridData = [["", ...Array.from({ length: cols }, (_, i) => (i + 1).toString())]];
-    for (let r = 0; r < rows; r++) {
-      lastGridData.push([getRowLabel(r), ...gridData[r]]);
-    }
-
-    // Render grid
+    // Render the visual grid
     const grid = document.getElementById('seatingGrid');
     grid.innerHTML = '';
     grid.style.gridTemplateColumns = `repeat(${cols + 1}, auto)`;
 
-    const blank = document.createElement('div');
-    blank.className = 'seat';
-    blank.textContent = '';
-    grid.appendChild(blank);
-
+    // Header row
+    grid.appendChild(document.createElement('div')); // top-left empty cell
     for (let c = 0; c < cols; c++) {
       const label = document.createElement('div');
       label.className = 'seat';
@@ -108,6 +100,7 @@
       grid.appendChild(label);
     }
 
+    // Rows
     for (let r = 0; r < rows; r++) {
       const rowLabel = document.createElement('div');
       rowLabel.className = 'seat';
@@ -123,17 +116,18 @@
       }
     }
 
-    document.getElementById('exportBtn').style.display = 'block';
-  });
+    // Build CSV output
+    let csvRows = [];
+    let header = [""].concat(Array.from({ length: cols }, (_, i) => i + 1));
+    csvRows.push(header.join(","));
 
-  document.getElementById('exportBtn').addEventListener('click', function () {
-    if (!lastGridData.length) return;
+    for (let r = 0; r < rows; r++) {
+      const rowLabel = getRowLabel(r);
+      const rowData = [rowLabel].concat(gridData[r]);
+      csvRows.push(rowData.join(","));
+    }
 
-    const worksheet = XLSX.utils.aoa_to_sheet(lastGridData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "SeatingPlan");
-
-    XLSX.writeFile(workbook, "ExamHallSeatingPlan.xlsx");
+    document.getElementById('csvOutput').value = csvRows.join("\n");
   });
 </script>
 
