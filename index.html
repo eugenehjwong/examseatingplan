@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Hall Seating Plan (Column Breaks)</title>
+  <title>Exam Hall Seating Plan (Restart on "---")</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -37,7 +37,7 @@
 </head>
 <body>
 
-<h2>Exam Hall Seating Plan (with Column Breaks)</h2>
+<h2>Exam Hall Seating Plan (with Column Breaks and Restarted Snaking)</h2>
 
 <form id="seatingForm">
   <label for="rows">Number of Rows:</label>
@@ -47,7 +47,7 @@
   <input type="number" id="cols" required min="1">
 
   <label for="students">Student Names or IDs (one per line).  
-    Use <code>---</code> to start a new column:</label>
+    Use <code>---</code> to start a new column and restart snaking:</label>
   <textarea id="students" rows="12" cols="50" required></textarea>
 
   <button type="submit">Generate Seating Plan</button>
@@ -69,31 +69,41 @@
     const rows = parseInt(document.getElementById('rows').value);
     const cols = parseInt(document.getElementById('cols').value);
     const input = document.getElementById('students').value.trim();
-    const lines = input.split('\n').map(l => l.trim());
+    const lines = input.split('\n').map(l => l.trim()).filter(l => l);
 
     const gridData = Array.from({ length: rows }, () => Array(cols).fill("- Empty -"));
 
     let col = 0;
-    let studentIndex = 0;
-    let buffer = [];
+    let direction = true; // true = down, false = up
+    let rowOrder = direction ? [...Array(rows).keys()] : [...Array(rows).keys()].reverse();
+    let rIdx = 0;
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+      const entry = lines[i];
 
-      if (line === "---") {
-        // Place the current buffer into the current column
-        placeStudentsInColumn(buffer, col, gridData, rows);
-        buffer = [];
+      if (entry === "---") {
         col++;
         if (col >= cols) break;
-      } else if (line) {
-        buffer.push(line);
+        // Reset snake direction and row index for new group
+        direction = true;
+        rowOrder = [...Array(rows).keys()];
+        rIdx = 0;
+        continue;
       }
-    }
 
-    // Final buffer (after last group)
-    if (buffer.length && col < cols) {
-      placeStudentsInColumn(buffer, col, gridData, rows);
+      // Place student at current position
+      if (rIdx >= rows) {
+        // Overflow: continue to next column
+        col++;
+        if (col >= cols) break;
+        direction = !direction;
+        rowOrder = direction ? [...Array(rows).keys()] : [...Array(rows).keys()].reverse();
+        rIdx = 0;
+      }
+
+      const row = rowOrder[rIdx];
+      gridData[row][col] = entry;
+      rIdx++;
     }
 
     // Render visual grid
@@ -101,7 +111,6 @@
     grid.innerHTML = '';
     grid.style.gridTemplateColumns = `repeat(${cols + 1}, auto)`;
 
-    // Header row
     grid.appendChild(document.createElement('div'));
     for (let c = 0; c < cols; c++) {
       const label = document.createElement('div');
@@ -126,12 +135,12 @@
       }
     }
 
-    // Create CSV with space between rows and columns
+    // Build CSV with space between rows and columns
     const csvRows = [];
     const header = [""];
     for (let c = 0; c < cols; c++) {
       header.push((c + 1).toString());
-      if (c !== cols - 1) header.push(""); // space between
+      if (c !== cols - 1) header.push(""); // spacing column
     }
     csvRows.push(header.join(","));
 
@@ -147,18 +156,6 @@
 
     document.getElementById('csvOutput').value = csvRows.join("\n");
   });
-
-  function placeStudentsInColumn(studentList, colIndex, grid, maxRows) {
-    const down = colIndex % 2 === 0;
-    const order = down ? [...Array(maxRows).keys()] : [...Array(maxRows).keys()].reverse();
-    let idx = 0;
-
-    for (let r of order) {
-      if (idx >= studentList.length) break;
-      grid[r][colIndex] = studentList[idx];
-      idx++;
-    }
-  }
 </script>
 
 </body>
