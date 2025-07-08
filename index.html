@@ -139,3 +139,27 @@
       const row = [getRowLabel(r)];
       for (let c = 0; c < cols; c++) {
         row.push(gridData[r][c]);
+        if (c !== cols - 1) row.push("");
+      }
+      csvRows.push(row.join(","));
+      if (r !== rows - 1) csvRows.push(""); // blank row
+    }
+
+    document.getElementById('csvOutput').value = csvRows.join("\n");
+  });
+
+  function placeStudentsInColumn(studentList, colIndex, grid, maxRows) {
+    const down = colIndex % 2 === 0;
+    const order = down ? [...Array(maxRows).keys()] : [...Array(maxRows).keys()].reverse();
+    let idx = 0;
+
+    for (let r of order) {
+      if (idx >= studentList.length) break;
+      grid[r][colIndex] = studentList[idx];
+      idx++;
+    }
+  }
+</script>
+
+</body>
+</html>
