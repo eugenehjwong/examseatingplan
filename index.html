@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Hall Seating Plan with Spaced CSV</title>
+  <title>Exam Hall Seating Plan (Column Breaks)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -37,7 +37,7 @@
 </head>
 <body>
 
-<h2>Exam Hall Seating Plan (Vertical Snake + Spaced CSV)</h2>
+<h2>Exam Hall Seating Plan (with Column Breaks)</h2>
 
 <form id="seatingForm">
   <label for="rows">Number of Rows:</label>
@@ -46,15 +46,16 @@
   <label for="cols">Number of Columns:</label>
   <input type="number" id="cols" required min="1">
 
-  <label for="students">Student Names or IDs (one per line, in register order):</label>
-  <textarea id="students" rows="10" cols="40" required></textarea>
+  <label for="students">Student Names or IDs (one per line).  
+    Use <code>---</code> to start a new column:</label>
+  <textarea id="students" rows="12" cols="50" required></textarea>
 
   <button type="submit">Generate Seating Plan</button>
 </form>
 
 <div id="seatingGrid" class="grid"></div>
 
-<h3>CSV Output (Spaced – Copy and Paste into Excel)</h3>
+<h3>CSV Output (Spaced for Excel)</h3>
 <textarea id="csvOutput" rows="12" readonly></textarea>
 
 <script>
@@ -67,22 +68,32 @@
 
     const rows = parseInt(document.getElementById('rows').value);
     const cols = parseInt(document.getElementById('cols').value);
-    const studentsRaw = document.getElementById('students').value.trim();
-    const studentList = studentsRaw.split('\n').map(s => s.trim()).filter(s => s);
+    const input = document.getElementById('students').value.trim();
+    const lines = input.split('\n').map(l => l.trim());
 
     const gridData = Array.from({ length: rows }, () => Array(cols).fill("- Empty -"));
+
+    let col = 0;
     let studentIndex = 0;
+    let buffer = [];
 
-    for (let col = 0; col < cols; col++) {
-      const down = col % 2 === 0;
-      const rowOrder = down ? [...Array(rows).keys()] : [...Array(rows).keys()].reverse();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
 
-      for (let row of rowOrder) {
-        if (studentIndex < studentList.length) {
-          gridData[row][col] = studentList[studentIndex];
-          studentIndex++;
-        }
+      if (line === "---") {
+        // Place the current buffer into the current column
+        placeStudentsInColumn(buffer, col, gridData, rows);
+        buffer = [];
+        col++;
+        if (col >= cols) break;
+      } else if (line) {
+        buffer.push(line);
       }
+    }
+
+    // Final buffer (after last group)
+    if (buffer.length && col < cols) {
+      placeStudentsInColumn(buffer, col, gridData, rows);
     }
 
     // Render visual grid
@@ -90,7 +101,7 @@
     grid.innerHTML = '';
     grid.style.gridTemplateColumns = `repeat(${cols + 1}, auto)`;
 
-    // Header
+    // Header row
     grid.appendChild(document.createElement('div'));
     for (let c = 0; c < cols; c++) {
       const label = document.createElement('div');
@@ -115,14 +126,12 @@
       }
     }
 
-    // Generate CSV with spacing
+    // Create CSV with space between rows and columns
     const csvRows = [];
-
-    // Header row with spaces between columns
     const header = [""];
     for (let c = 0; c < cols; c++) {
-      header.push(c + 1);
-      if (c !== cols - 1) header.push(""); // space between columns
+      header.push((c + 1).toString());
+      if (c !== cols - 1) header.push(""); // space between
     }
     csvRows.push(header.join(","));
 
@@ -130,16 +139,3 @@
       const row = [getRowLabel(r)];
       for (let c = 0; c < cols; c++) {
         row.push(gridData[r][c]);
-        if (c !== cols - 1) row.push(""); // spacing column
-      }
-      csvRows.push(row.join(","));
-      // Blank row after each data row (except after the last)
-      if (r !== rows - 1) csvRows.push("");
-    }
-
-    document.getElementById('csvOutput').value = csvRows.join("\n");
-  });
-</script>
-
-</body>
-</html>
