@@ -71,7 +71,7 @@
     const input = document.getElementById('students').value.trim();
     const lines = input.split('\n').map(l => l.trim()).filter(l => l);
 
-    const gridData = Array.from({ length: rows }, () => Array(cols).fill("- Empty -"));
+    const gridData = Array.from({ length: rows }, () => Array(cols).fill(""));
 
     let col = 0;
     let direction = true; // true = down, false = up
