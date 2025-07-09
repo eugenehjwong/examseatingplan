@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Hall Seating Plan (With Blank Seats and Column Breaks)</title>
+  <title>Exam Hall Seating Plan with CSV Download</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -37,7 +37,7 @@
 </head>
 <body>
 
-<h2>Exam Hall Seating Plan (Supports Blank Seats and Column Breaks)</h2>
+<h2>Exam Hall Seating Plan</h2>
 
 <form id="seatingForm">
   <label for="rows">Number of Rows:</label>
@@ -48,7 +48,7 @@
 
   <label for="students">
     Student Names or IDs (one per line):<br>
-    Use <code>--</code> for a blank seat,<br>
+    Use <code>--</code> for a blank seat<br>
     Use <code>---</code> to start a new column and restart snaking
   </label>
   <textarea id="students" rows="12" cols="50" required></textarea>
@@ -60,8 +60,11 @@
 
 <h3>CSV Output (Spaced for Excel)</h3>
 <textarea id="csvOutput" rows="12" readonly></textarea>
+<button id="downloadBtn">Download CSV</button>
 
 <script>
+  let lastCSV = ''; // stores current CSV data
+
   function getRowLabel(index) {
     return String.fromCharCode(65 + index); // A, B, C...
   }
@@ -86,7 +89,7 @@
       if (entry === "---") {
         col++;
         if (col >= cols) break;
-        direction = true; // restart direction
+        direction = true;
         rowOrder = [...Array(rows).keys()];
         rIdx = 0;
         continue;
@@ -107,22 +110,20 @@
       rIdx++;
     }
 
-    // Render visual grid
+    // Render seating grid
     const grid = document.getElementById('seatingGrid');
     grid.innerHTML = '';
     grid.style.gridTemplateColumns = `repeat(${cols + 1}, auto)`;
 
-    // Column headers
     grid.appendChild(document.createElement('div'));
     for (let c = 0; c < cols; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'seat';
-      cell.style.backgroundColor = '#d0d0ff';
-      cell.textContent = c + 1;
-      grid.appendChild(cell);
+      const label = document.createElement('div');
+      label.className = 'seat';
+      label.style.backgroundColor = '#d0d0ff';
+      label.textContent = c + 1;
+      grid.appendChild(label);
     }
 
-    // Rows
     for (let r = 0; r < rows; r++) {
       const rowLabel = document.createElement('div');
       rowLabel.className = 'seat';
@@ -138,7 +139,7 @@
       }
     }
 
-    // Generate CSV output with spacing
+    // Generate CSV with spacing
     const csvRows = [];
     const header = [""];
     for (let c = 0; c < cols; c++) {
@@ -157,7 +158,25 @@
       if (r !== rows - 1) csvRows.push("");
     }
 
-    document.getElementById('csvOutput').value = csvRows.join("\n");
+    lastCSV = csvRows.join("\n");
+    document.getElementById('csvOutput').value = lastCSV;
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click', function () {
+    if (!lastCSV) {
+      alert("Please generate the seating plan first.");
+      return;
+    }
+
+    const blob = new Blob([lastCSV], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "seating_plan.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   });
 </script>
 
