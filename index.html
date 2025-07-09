@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Hall Seating Plan (Restart on "---")</title>
+  <title>Exam Hall Seating Plan (With Blank Seats and Column Breaks)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -37,7 +37,7 @@
 </head>
 <body>
 
-<h2>Exam Hall Seating Plan (with Column Breaks and Restarted Snaking)</h2>
+<h2>Exam Hall Seating Plan (Supports Blank Seats and Column Breaks)</h2>
 
 <form id="seatingForm">
   <label for="rows">Number of Rows:</label>
@@ -46,8 +46,11 @@
   <label for="cols">Number of Columns:</label>
   <input type="number" id="cols" required min="1">
 
-  <label for="students">Student Names or IDs (one per line).  
-    Use <code>---</code> to start a new column and restart snaking:</label>
+  <label for="students">
+    Student Names or IDs (one per line):<br>
+    Use <code>--</code> for a blank seat,<br>
+    Use <code>---</code> to start a new column and restart snaking
+  </label>
   <textarea id="students" rows="12" cols="50" required></textarea>
 
   <button type="submit">Generate Seating Plan</button>
@@ -60,7 +63,7 @@
 
 <script>
   function getRowLabel(index) {
-    return String.fromCharCode(65 + index); // A, B, C, ...
+    return String.fromCharCode(65 + index); // A, B, C...
   }
 
   document.getElementById('seatingForm').addEventListener('submit', function (e) {
@@ -68,14 +71,13 @@
 
     const rows = parseInt(document.getElementById('rows').value);
     const cols = parseInt(document.getElementById('cols').value);
-    const input = document.getElementById('students').value.trim();
-    const lines = input.split('\n').map(l => l.trim()).filter(l => l);
+    const lines = document.getElementById('students').value.trim().split('\n').map(l => l.trim()).filter(l => l);
 
     const gridData = Array.from({ length: rows }, () => Array(cols).fill(""));
 
     let col = 0;
     let direction = true; // true = down, false = up
-    let rowOrder = direction ? [...Array(rows).keys()] : [...Array(rows).keys()].reverse();
+    let rowOrder = [...Array(rows).keys()];
     let rIdx = 0;
 
     for (let i = 0; i < lines.length; i++) {
@@ -84,16 +86,15 @@
       if (entry === "---") {
         col++;
         if (col >= cols) break;
-        // Reset snake direction and row index for new group
-        direction = true;
+        direction = true; // restart direction
         rowOrder = [...Array(rows).keys()];
         rIdx = 0;
         continue;
       }
 
-      // Place student at current position
+      const studentName = entry === "--" ? "" : entry;
+
       if (rIdx >= rows) {
-        // Overflow: continue to next column
         col++;
         if (col >= cols) break;
         direction = !direction;
@@ -102,7 +103,7 @@
       }
 
       const row = rowOrder[rIdx];
-      gridData[row][col] = entry;
+      gridData[row][col] = studentName;
       rIdx++;
     }
 
@@ -111,15 +112,17 @@
     grid.innerHTML = '';
     grid.style.gridTemplateColumns = `repeat(${cols + 1}, auto)`;
 
+    // Column headers
     grid.appendChild(document.createElement('div'));
     for (let c = 0; c < cols; c++) {
-      const label = document.createElement('div');
-      label.className = 'seat';
-      label.style.backgroundColor = '#d0d0ff';
-      label.textContent = c + 1;
-      grid.appendChild(label);
+      const cell = document.createElement('div');
+      cell.className = 'seat';
+      cell.style.backgroundColor = '#d0d0ff';
+      cell.textContent = c + 1;
+      grid.appendChild(cell);
     }
 
+    // Rows
     for (let r = 0; r < rows; r++) {
       const rowLabel = document.createElement('div');
       rowLabel.className = 'seat';
@@ -135,12 +138,12 @@
       }
     }
 
-    // Build CSV with space between rows and columns
+    // Generate CSV output with spacing
     const csvRows = [];
     const header = [""];
     for (let c = 0; c < cols; c++) {
-      header.push((c + 1).toString());
-      if (c !== cols - 1) header.push(""); // spacing column
+      header.push(c + 1);
+      if (c !== cols - 1) header.push("");
     }
     csvRows.push(header.join(","));
 
@@ -151,7 +154,7 @@
         if (c !== cols - 1) row.push("");
       }
       csvRows.push(row.join(","));
-      if (r !== rows - 1) csvRows.push(""); // blank row
+      if (r !== rows - 1) csvRows.push("");
     }
 
     document.getElementById('csvOutput').value = csvRows.join("\n");
