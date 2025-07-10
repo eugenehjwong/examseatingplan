@@ -74,6 +74,14 @@
 <textarea id="examIndexList" rows="10" readonly></textarea>
 <button onclick="copyExamIndexList()">📋 Copy Exam Index List</button>
 
+function copyExamIndexList() {
+  const textArea = document.getElementById("examIndexList");
+  textArea.select();
+  textArea.setSelectionRange(0, 99999); // For mobile compatibility
+  document.execCommand("copy");
+  alert("Exam index list copied to clipboard!");
+}
+
 <!-- 🪑 App 2: Exam Hall Seating Plan -->
 <h2>🪑 Exam Hall Seating Plan</h2>
 
