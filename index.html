@@ -62,8 +62,12 @@
 <h2>📄 Filter Students by Subject Column</h2>
 
 <input type="file" id="csvFile" accept=".csv" />
-<label for="subjectSelect">Select column:</label>
-<select id="subjectSelect"></select>
+
+<label for="subjectSelect">Select up to 4 subject columns:</label>
+<select id="subjectSelect" multiple size="6" style="width: 300px;"></select>
+<small>Hold Ctrl (Windows) or Cmd (Mac) to select multiple subjects</small>
+
+
 <br>
 <button onclick="filterData()">Filter Students</button>
 <button onclick="exportCSV()">Download CSV</button>
