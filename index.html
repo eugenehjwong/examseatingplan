@@ -173,39 +173,83 @@ function copyExamIndexList() {
     return prefix + number;
   }
 
-  function filterData() {
-    const subject = document.getElementById('subjectSelect').value;
-    filteredOutput = data.filter(row => row[subject] && row[subject].toLowerCase() !== 'nil');
+function filterData() {
+  const selectedOptions = Array.from(document.getElementById('subjectSelect').selectedOptions);
+  const subjects = selectedOptions.map(option => option.value);
 
-    if (filteredOutput.length === 0) {
-      document.getElementById('output').innerHTML = "<p>No students found for this column.</p>";
-      return;
-    }
-
-    let html = `<h3 style="margin-top:20px; font-size:1.3em; font-weight:bold;">Subject: ${subject}</h3>`;
-    html += "<table><thead><tr><th>S/N</th><th>Name</th><th>Class</th><th>Exam Index No.</th></tr></thead><tbody>";
-
-    const examIndices = [];
-
-    filteredOutput = filteredOutput.map(row => {
-      const name = row['Name'] || "";
-      const className = row[classColumn] || "";
-      const sn = row[snColumn] || "";
-      const examIndex = getExamIndexNo(className, sn);
-      examIndices.push(examIndex);
-      html += `<tr><td>${sn}</td><td>${name}</td><td>${className}</td><td>${examIndex}</td></tr>`;
-      return {
-        "S/N": sn,
-        "Name": name,
-        "Class": className,
-        "Exam Index No.": examIndex
-      };
-    });
-
-    html += "</tbody></table>";
-    document.getElementById('output').innerHTML = html;
-    document.getElementById('examIndexList').value = examIndices.join('\n');
+  if (subjects.length === 0) {
+    alert("Please select at least one subject column.");
+    return;
   }
+
+  if (subjects.length > 4) {
+    alert("You may select up to 4 subjects only.");
+    return;
+  }
+
+  const seenExamIndices = new Set();
+  const duplicateIndices = new Set();
+  const combinedList = [];
+
+  filteredOutput = [];
+
+  data.forEach(row => {
+    const name = row['Name'] || "";
+    const className = row[classColumn] || "";
+    const sn = row[snColumn] || "";
+    const examIndex = getExamIndexNo(className, sn);
+
+    const isOffered = subjects.some(subject => row[subject] && row[subject].toLowerCase() !== 'nil');
+    const matchedSubjects = subjects.filter(subject => row[subject] && row[subject].toLowerCase() !== 'nil');
+
+    if (matchedSubjects.length > 0) {
+      if (seenExamIndices.has(examIndex)) {
+        duplicateIndices.add(examIndex);
+      } else {
+        seenExamIndices.add(examIndex);
+        combinedList.push({ index: examIndex, sn, name, className });
+      }
+    }
+  });
+
+  if (duplicateIndices.size > 0) {
+    alert("Error: The following students are enrolled in more than one selected subject:\n" + Array.from(duplicateIndices).join(', '));
+    return;
+  }
+
+  // Sort combinedList
+  const groupOrder = ["TP", "GT", "FN", "GD", "KD", "PT", "PC", "JY", "DV"];
+  combinedList.sort((a, b) => {
+    const prefixA = a.index.slice(0, 2);
+    const prefixB = b.index.slice(0, 2);
+    const orderA = groupOrder.indexOf(prefixA);
+    const orderB = groupOrder.indexOf(prefixB);
+    if (orderA !== orderB) return orderA - orderB;
+    return parseInt(a.index.slice(2)) - parseInt(b.index.slice(2));
+  });
+
+  // Display table
+  let html = `<h3 style="margin-top:20px; font-size:1.3em; font-weight:bold;">Subjects: ${subjects.join(", ")}</h3>`;
+  html += "<table><thead><tr><th>S/N</th><th>Name</th><th>Class</th><th>Exam Index No.</th></tr></thead><tbody>";
+
+  filteredOutput = combinedList.map(item => {
+    html += `<tr><td>${item.sn}</td><td>${item.name}</td><td>${item.className}</td><td>${item.index}</td></tr>`;
+    return {
+      "S/N": item.sn,
+      "Name": item.name,
+      "Class": item.className,
+      "Exam Index No.": item.index
+    };
+  });
+
+  html += "</tbody></table>";
+  document.getElementById('output').innerHTML = html;
+
+  // Update index list
+  document.getElementById('examIndexList').value = combinedList.map(s => s.index).join('\n');
+}
+  
+  
 
   function exportCSV() {
     if (filteredOutput.length === 0) {
