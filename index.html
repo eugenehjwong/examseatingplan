@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Exam Hall Seating Plan with CSV Download</title>
+  <title>Student Tools: Subject Filter + Seating Plan</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 40px;
     }
-    label, input, textarea, button {
+    h2 {
+      margin-top: 40px;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 5px;
+    }
+    label, input, textarea, button, select {
       display: block;
       margin: 10px 0;
     }
@@ -27,17 +33,48 @@
       text-align: center;
       font-size: 14px;
     }
-    textarea#csvOutput {
-      width: 100%;
+    table {
+      border-collapse: collapse;
       margin-top: 20px;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    textarea {
+      width: 100%;
       font-family: monospace;
+    }
+    #csvOutput, #examIndexList {
+      margin-top: 10px;
       white-space: pre;
     }
   </style>
 </head>
 <body>
 
-<h2>Exam Hall Seating Plan</h2>
+<!-- 📄 App 1: Filter Students by Subject -->
+<h2>📄 Filter Students by Subject Column</h2>
+
+<input type="file" id="csvFile" accept=".csv" />
+<label for="subjectSelect">Select column:</label>
+<select id="subjectSelect"></select>
+<br>
+<button onclick="filterData()">Filter Students</button>
+<button onclick="exportCSV()">Download CSV</button>
+
+<div id="output"></div>
+
+<h3>📋 Exam Index Numbers (One Per Line)</h3>
+<textarea id="examIndexList" rows="10" readonly></textarea>
+
+<!-- 🪑 App 2: Exam Hall Seating Plan -->
+<h2>🪑 Exam Hall Seating Plan</h2>
 
 <form id="seatingForm">
   <label for="rows">Number of Rows:</label>
@@ -58,63 +95,163 @@
 
 <div id="seatingGrid" class="grid"></div>
 
-<h3>CSV Output (Spaced for Excel)</h3>
+<h3>📄 CSV Output (Spaced for Excel)</h3>
 <textarea id="csvOutput" rows="12" readonly></textarea>
 <button id="downloadBtn">Download CSV</button>
 
 <script>
-  let lastCSV = ''; // stores current CSV data
+  // ===== App 1: Student Subject Filter =====
+  let data = [];
+  let headers = [];
+  let filteredOutput = [];
+  let snColumn = "";
+  let classColumn = "";
+
+  const classPrefixes = {
+    "TEMPERANCE": "TP", "GENTLENESS": "GT", "FAITHFULNESS": "FN", "GOODNESS": "GD",
+    "KINDNESS": "KD", "PATIENCE": "PT", "PEACE": "PC", "JOY": "JY", "LOVE": "LV", "DEVOTION": "DV"
+  };
+
+  document.getElementById('csvFile').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        data = results.data;
+        headers = results.meta.fields;
+        detectKeyColumns();
+        populateSubjectSelect(headers);
+      }
+    });
+  });
+
+  function detectKeyColumns() {
+    const nameIndex = headers.indexOf("Name");
+    snColumn = nameIndex > 0 ? headers[nameIndex - 1] : "Register Number";
+    classColumn = headers.find(h => h.toLowerCase().startsWith("class (")) || "Class";
+  }
+
+  function populateSubjectSelect(fields) {
+    const select = document.getElementById('subjectSelect');
+    select.innerHTML = "";
+    fields.forEach(field => {
+      if (!['Name', snColumn, classColumn].includes(field)) {
+        const option = document.createElement("option");
+        option.value = field;
+        option.textContent = field;
+        select.appendChild(option);
+      }
+    });
+  }
+
+  function getExamIndexNo(classNameRaw, regNumber) {
+    let classParts = classNameRaw.trim().split(" ");
+    let classWord = classParts.length > 1 ? classParts.slice(1).join(" ").toUpperCase() : classNameRaw.toUpperCase();
+    let prefix = "XX";
+    for (const [key, value] of Object.entries(classPrefixes)) {
+      if (classWord.includes(key)) {
+        prefix = value;
+        break;
+      }
+    }
+    const number = String(regNumber).padStart(2, '0');
+    return prefix + number;
+  }
+
+  function filterData() {
+    const subject = document.getElementById('subjectSelect').value;
+    filteredOutput = data.filter(row => row[subject] && row[subject].toLowerCase() !== 'nil');
+
+    if (filteredOutput.length === 0) {
+      document.getElementById('output').innerHTML = "<p>No students found for this column.</p>";
+      return;
+    }
+
+    let html = `<h3 style="margin-top:20px; font-size:1.3em; font-weight:bold;">Subject: ${subject}</h3>`;
+    html += "<table><thead><tr><th>S/N</th><th>Name</th><th>Class</th><th>Exam Index No.</th></tr></thead><tbody>";
+
+    const examIndices = [];
+
+    filteredOutput = filteredOutput.map(row => {
+      const name = row['Name'] || "";
+      const className = row[classColumn] || "";
+      const sn = row[snColumn] || "";
+      const examIndex = getExamIndexNo(className, sn);
+      examIndices.push(examIndex);
+      html += `<tr><td>${sn}</td><td>${name}</td><td>${className}</td><td>${examIndex}</td></tr>`;
+      return {
+        "S/N": sn,
+        "Name": name,
+        "Class": className,
+        "Exam Index No.": examIndex
+      };
+    });
+
+    html += "</tbody></table>";
+    document.getElementById('output').innerHTML = html;
+    document.getElementById('examIndexList').value = examIndices.join('\n');
+  }
+
+  function exportCSV() {
+    if (filteredOutput.length === 0) {
+      alert("Please filter the data first.");
+      return;
+    }
+    const subject = document.getElementById('subjectSelect').value;
+    const headers = Object.keys(filteredOutput[0]);
+    const rows = filteredOutput.map(row => headers.map(h => row[h]));
+    let csvContent = `${subject}\n`;
+    csvContent += headers.join(",") + "\n";
+    rows.forEach(row => csvContent += row.join(",") + "\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${subject}.csv`);
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ===== App 2: Exam Hall Seating Plan =====
+  let lastCSV = '';
 
   function getRowLabel(index) {
-    return String.fromCharCode(65 + index); // A, B, C...
+    return String.fromCharCode(65 + index);
   }
 
   document.getElementById('seatingForm').addEventListener('submit', function (e) {
     e.preventDefault();
-
     const rows = parseInt(document.getElementById('rows').value);
     const cols = parseInt(document.getElementById('cols').value);
     const lines = document.getElementById('students').value.trim().split('\n').map(l => l.trim()).filter(l => l);
-
     const gridData = Array.from({ length: rows }, () => Array(cols).fill(""));
-
-    let col = 0;
-    let direction = true; // true = down, false = up
-    let rowOrder = [...Array(rows).keys()];
-    let rIdx = 0;
+    let col = 0, direction = true, rowOrder = [...Array(rows).keys()], rIdx = 0;
 
     for (let i = 0; i < lines.length; i++) {
       const entry = lines[i];
-
       if (entry === "---") {
-        col++;
-        if (col >= cols) break;
-        direction = true;
-        rowOrder = [...Array(rows).keys()];
-        rIdx = 0;
+        col++; if (col >= cols) break;
+        direction = true; rowOrder = [...Array(rows).keys()]; rIdx = 0;
         continue;
       }
-
       const studentName = entry === "--" ? "" : entry;
-
       if (rIdx >= rows) {
-        col++;
-        if (col >= cols) break;
+        col++; if (col >= cols) break;
         direction = !direction;
         rowOrder = direction ? [...Array(rows).keys()] : [...Array(rows).keys()].reverse();
         rIdx = 0;
       }
-
       const row = rowOrder[rIdx];
       gridData[row][col] = studentName;
       rIdx++;
     }
 
-    // Render seating grid
     const grid = document.getElementById('seatingGrid');
     grid.innerHTML = '';
     grid.style.gridTemplateColumns = `repeat(${cols + 1}, auto)`;
-
     grid.appendChild(document.createElement('div'));
     for (let c = 0; c < cols; c++) {
       const label = document.createElement('div');
@@ -130,7 +267,6 @@
       rowLabel.style.backgroundColor = '#d0d0ff';
       rowLabel.textContent = getRowLabel(r);
       grid.appendChild(rowLabel);
-
       for (let c = 0; c < cols; c++) {
         const seat = document.createElement('div');
         seat.className = 'seat';
@@ -139,7 +275,6 @@
       }
     }
 
-    // Generate CSV with spacing
     const csvRows = [];
     const header = [""];
     for (let c = 0; c < cols; c++) {
@@ -173,9 +308,7 @@
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", "seating_plan.csv");
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   });
 </script>
