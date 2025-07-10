@@ -141,9 +141,9 @@ function filterData() {
     const sn = row[snColumn] || "";
     const examIndex = getExamIndexNo(className, sn);
 
-    const isInSubjects = subjects.filter(subject => row[subject] && row[subject].toLowerCase() !== 'nil');
+    const offeredSubjects = subjects.filter(subject => row[subject] && row[subject].toLowerCase() !== 'nil');
 
-    if (isInSubjects.length > 0) {
+    if (offeredSubjects.length > 0) {
       if (seen.has(examIndex)) {
         duplicates.add(examIndex);
       } else {
@@ -158,6 +158,7 @@ function filterData() {
     return;
   }
 
+  // Sort by group and index number
   const groupOrder = ["TP", "GT", "FN", "GD", "KD", "PT", "PC", "JY", "DV"];
   combinedList.sort((a, b) => {
     const prefixA = a.index.slice(0, 2);
@@ -168,8 +169,10 @@ function filterData() {
     return parseInt(a.index.slice(2)) - parseInt(b.index.slice(2));
   });
 
+  // Save filtered result
   filteredOutput = combinedList;
 
+  // Generate table output
   let html = `<h3 style="margin-top:20px;">Subjects: ${subjects.join(', ')}</h3>`;
   html += `<table><thead><tr><th>S/N</th><th>Name</th><th>Class</th><th>Exam Index No.</th></tr></thead><tbody>`;
   combinedList.forEach(row => {
@@ -177,6 +180,8 @@ function filterData() {
   });
   html += "</tbody></table>";
   document.getElementById('output').innerHTML = html;
+
+  // Exam Index List output
   document.getElementById('examIndexList').value = combinedList.map(x => x.index).join('\n');
 }
 
