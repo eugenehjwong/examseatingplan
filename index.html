@@ -108,9 +108,10 @@ function showCheckboxes(fields) {
 
 function limitCheckboxes() {
   const checked = document.querySelectorAll('#subjectCheckboxes input[type="checkbox"]:checked');
-  if (checked.length > 4) {
-    alert("Select up to 4 subjects only.");
-    this.checked = false;
+  if (checked.length > 7) {
+    alert("Select up to 7 subjects only.");
+    // Uncheck the last selected checkbox
+    checked[checked.length - 1].checked = false;
   }
 }
 
