@@ -138,8 +138,12 @@ function filterData() {
   data.forEach(row => {
     const name = row["Name"] || "";
     const className = row[classColumn] || "";
-    const sn = row[snColumn] || "";
+    
+    const sn = row[snColumn];
+    if (!sn || isNaN(sn)) return;  // Skip if no valid register number
+
     const examIndex = getExamIndexNo(className, sn);
+    
 
     const offeredSubjects = subjects.filter(subject => row[subject] && row[subject].toLowerCase() !== 'nil');
 
