@@ -194,6 +194,42 @@ function filterData() {
   document.getElementById('examIndexList').value = orderedIndexes.join('\n');
 }
 
+
+function copyExamIndexList() {
+  if (filteredOutput.length === 0) {
+    alert("Filter data first.");
+    return;
+  }
+
+  const groupOrder = ["TP", "GT", "FN", "GD", "KD", "DV", "PT", "PC", "JY"];
+  let indexList = [];
+
+  groupOrder.forEach((prefix, groupIdx) => {
+    const groupIndexes = filteredOutput
+      .filter(x => x.index.startsWith(prefix))
+      .map(x => x.index);
+
+    if (groupIndexes.length > 0) {
+      if (indexList.length > 0) {
+        indexList.push("--");  // Insert separator before a new group if it's not the first group
+      }
+      indexList = indexList.concat(groupIndexes);
+    }
+  });
+
+  // Copy to clipboard
+  const textToCopy = indexList.join('\n');
+
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    alert("Exam index list copied to clipboard!");
+  }).catch(err => {
+    console.error("Failed to copy: ", err);
+    alert("Failed to copy exam index list.");
+  });
+}
+  
+
+  
 function exportExamIndexCSV() {
   if (filteredOutput.length === 0) {
     alert("Filter data first.");
