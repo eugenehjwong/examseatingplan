@@ -186,7 +186,19 @@ function filterData() {
   document.getElementById('output').innerHTML = html;
 
   // Exam Index List output
-  document.getElementById('examIndexList').value = combinedList.map(x => x.index).join('\n');
+  
+  const groupOrder = ["TP", "GT", "FN", "GD", "KD", "DV", "PT", "PC", "JY"];
+
+const orderedIndexes = [];
+groupOrder.forEach(prefix => {
+  combinedList
+    .filter(x => x.index.startsWith(prefix))
+    .forEach(x => orderedIndexes.push(x.index));
+});
+
+document.getElementById('examIndexList').value = orderedIndexes.join('\n');
+
+  
 }
 
 function copyExamIndexList() {
