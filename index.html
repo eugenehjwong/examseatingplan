@@ -228,7 +228,36 @@ function copyExamIndexList() {
   });
 }
   
+function countStudentsByClass() {
+  if (filteredOutput.length === 0) {
+    alert("Filter data first.");
+    return;
+  }
 
+  const groupOrder = ["TP", "GT", "FN", "GD", "KD", "DV", "PT", "PC", "JY"];
+  const counts = {};
+
+  groupOrder.forEach(prefix => counts[prefix] = 0);
+
+  filteredOutput.forEach(entry => {
+    const prefix = entry.index.slice(0,2);
+    if (counts.hasOwnProperty(prefix)) {
+      counts[prefix]++;
+    }
+  });
+
+  let html = `<h3>📊 Number of Students per Class Group</h3>`;
+  html += `<table><thead><tr><th>Class Group</th><th>Number of Students</th></tr></thead><tbody>`;
+
+  groupOrder.forEach(prefix => {
+    html += `<tr><td>${prefix}</td><td>${counts[prefix]}</td></tr>`;
+  });
+
+  html += `<tr><th>Total</th><th>${filteredOutput.length}</th></tr>`;
+  html += `</tbody></table>`;
+
+  document.getElementById('countSummary').innerHTML = html;
+}
   
 function exportExamIndexCSV() {
   if (filteredOutput.length === 0) {
