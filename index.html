@@ -123,6 +123,8 @@ function getExamIndexNo(classNameRaw, regNumber) {
   return prefix + String(regNumber).padStart(2, '0');
 }
 
+
+  
 function filterData() {
   const subjects = Array.from(document.querySelectorAll('#subjectCheckboxes input[type="checkbox"]:checked')).map(cb => cb.value);
 
@@ -138,13 +140,10 @@ function filterData() {
   data.forEach(row => {
     const name = row["Name"] || "";
     const className = row[classColumn] || "";
-    
     const sn = row[snColumn];
-    if (!sn || isNaN(sn)) return;  // Skip if no valid register number
+    if (!sn || isNaN(sn)) return;  // skip if no valid register number
 
     const examIndex = getExamIndexNo(className, sn);
-    
-
     const offeredSubjects = subjects.filter(subject => row[subject] && row[subject].toLowerCase() !== 'nil');
 
     if (offeredSubjects.length > 0) {
@@ -162,8 +161,8 @@ function filterData() {
     return;
   }
 
-  // Sort by group and index number
-  const groupOrder = ["TP", "GT", "FN", "GD", "KD", "PT", "PC", "JY", "DV"];
+  // Sorting order
+  const groupOrder = ["TP", "GT", "FN", "GD", "KD", "DV", "PT", "PC", "JY"];
   combinedList.sort((a, b) => {
     const prefixA = a.index.slice(0, 2);
     const prefixB = b.index.slice(0, 2);
@@ -173,10 +172,10 @@ function filterData() {
     return parseInt(a.index.slice(2)) - parseInt(b.index.slice(2));
   });
 
-  // Save filtered result
+  // Save globally
   filteredOutput = combinedList;
 
-  // Generate table output
+  // Display HTML Table
   let html = `<h3 style="margin-top:20px;">Subjects: ${subjects.join(', ')}</h3>`;
   html += `<table><thead><tr><th>S/N</th><th>Name</th><th>Class</th><th>Exam Index No.</th></tr></thead><tbody>`;
   combinedList.forEach(row => {
@@ -185,28 +184,14 @@ function filterData() {
   html += "</tbody></table>";
   document.getElementById('output').innerHTML = html;
 
-  // Exam Index List output
-  
-  const groupOrder = ["TP", "GT", "FN", "GD", "KD", "DV", "PT", "PC", "JY"];
-
-const orderedIndexes = [];
-groupOrder.forEach(prefix => {
-  combinedList
-    .filter(x => x.index.startsWith(prefix))
-    .forEach(x => orderedIndexes.push(x.index));
-});
-
-document.getElementById('examIndexList').value = orderedIndexes.join('\n');
-
-  
-}
-
-function copyExamIndexList() {
-  const textArea = document.getElementById("examIndexList");
-  textArea.select();
-  textArea.setSelectionRange(0, 99999);
-  document.execCommand("copy");
-  alert("Exam index list copied to clipboard!");
+  // Generate ordered exam index numbers for textarea
+  const orderedIndexes = [];
+  groupOrder.forEach(prefix => {
+    combinedList
+      .filter(x => x.index.startsWith(prefix))
+      .forEach(x => orderedIndexes.push(x.index));
+  });
+  document.getElementById('examIndexList').value = orderedIndexes.join('\n');
 }
 
 function exportExamIndexCSV() {
@@ -214,18 +199,31 @@ function exportExamIndexCSV() {
     alert("Filter data first.");
     return;
   }
-  const rows = [["Exam Index No"]];
-  filteredOutput.forEach(entry => rows.push([entry.index]));
+
+  const groupOrder = ["TP", "GT", "FN", "GD", "KD", "DV", "PT", "PC", "JY"];
+  const orderedIndexes = [];
+  groupOrder.forEach(prefix => {
+    filteredOutput
+      .filter(x => x.index.startsWith(prefix))
+      .forEach(x => orderedIndexes.push([x.index]));
+  });
+
+  const rows = [["Exam Index No"], ...orderedIndexes];
   const csvContent = rows.map(r => r.join(",")).join("\n");
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
   link.setAttribute("download", "exam_index_list.csv");
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
 
+
+
+  
 // Seating plan logic
 let lastCSV = "";
 function getRowLabel(i) { return String.fromCharCode(65 + i); }
